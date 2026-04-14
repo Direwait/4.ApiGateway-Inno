@@ -1,0 +1,155 @@
+package com.innowise.apiGateway;
+
+import com.innowise.apiGateway.dto.AuthRequest;
+import com.innowise.apiGateway.dto.JwtResponse;
+import com.innowise.apiGateway.dto.UserDto;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
+import java.time.LocalDate;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class RegistrationOrchestratorTest {
+
+    @Mock
+    private JwtService jwtService;
+
+    @Mock
+    private WebClient webClient;
+
+    @Mock
+    private WebClient.RequestBodyUriSpec requestBodyUriSpec;
+
+    @Mock
+    private WebClient.RequestBodySpec requestBodySpec;
+
+    @Mock
+    private WebClient.ResponseSpec responseSpec;
+
+    @Mock
+    private WebClient.RequestHeadersUriSpec requestHeadersUriSpec;
+
+    @Mock
+    private WebClient.RequestHeadersSpec requestHeadersSpec;
+
+    @InjectMocks
+    private RegistrationOrchestrator orchestrator;
+
+    private AuthRequest authRequest;
+    private JwtResponse jwtResponse;
+    private UserDto userDto;
+    private UUID userId;
+
+    @BeforeEach
+    void setUp() {
+        userId = UUID.randomUUID();
+        authRequest = AuthRequest.builder()
+                .username("testuser")
+                .password("password")
+                .build();
+        jwtResponse = new JwtResponse("access.token", "refresh.token");
+        userDto = UserDto.builder()
+                .id(userId)
+                .name("testname")
+                .surname("testsurname")
+                .email("placeholder@mail.com")
+                .birthDate(LocalDate.of(1800, 1, 1))
+                .build();
+    }
+
+    @Test
+    void register_Success() {
+        // Мокаем вызов для auth-service
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(contains("/auth/register"))).thenReturn(requestBodySpec);
+        when(requestBodySpec.contentType(any(MediaType.class))).thenReturn(requestBodySpec);
+        when(requestBodySpec.bodyValue(any(AuthRequest.class))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(JwtResponse.class)).thenReturn(Mono.just(jwtResponse));
+
+        // Мокаем вызов для user-service
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(contains("/users"))).thenReturn(requestBodySpec);
+        when(requestBodySpec.contentType(any(MediaType.class))).thenReturn(requestBodySpec);
+        when(requestBodySpec.bodyValue(any(UserDto.class))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(UserDto.class)).thenReturn(Mono.just(userDto));
+
+        when(jwtService.extractUserId(anyString())).thenReturn(userId);
+
+        StepVerifier.create(orchestrator.register(authRequest))
+                .expectNext(jwtResponse)
+                .verifyComplete();
+
+        verify(webClient, times(2)).post();
+        verify(jwtService).extractUserId(anyString());
+    }
+
+    @Test
+    void register_UserServiceFails_Rollback() {
+        // Auth service success
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(contains("/auth/register"))).thenReturn(requestBodySpec);
+        when(requestBodySpec.contentType(any(MediaType.class))).thenReturn(requestBodySpec);
+        when(requestBodySpec.bodyValue(any(AuthRequest.class))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(JwtResponse.class)).thenReturn(Mono.just(jwtResponse));
+
+        // User service fails
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(contains("/users"))).thenReturn(requestBodySpec);
+        when(requestBodySpec.contentType(any(MediaType.class))).thenReturn(requestBodySpec);
+        when(requestBodySpec.bodyValue(any(UserDto.class))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(UserDto.class))
+                .thenReturn(Mono.error(new RuntimeException("UserService failed")));
+
+        when(jwtService.extractUserId(anyString())).thenReturn(userId);
+
+        // Rollback
+        when(webClient.delete()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(contains("/auth/rollback-registration"), eq(userId)))
+                .thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(Void.class)).thenReturn(Mono.empty());
+
+        StepVerifier.create(orchestrator.register(authRequest))
+                .expectError(RuntimeException.class)
+                .verify();
+
+        verify(webClient).delete();
+    }
+
+    @Test
+    void register_AuthServiceFails() {
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(contains("/auth/register"))).thenReturn(requestBodySpec);
+        when(requestBodySpec.contentType(any(MediaType.class))).thenReturn(requestBodySpec);
+        when(requestBodySpec.bodyValue(any(AuthRequest.class))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(JwtResponse.class))
+                .thenReturn(Mono.error(new RuntimeException("AuthService failed")));
+
+        StepVerifier.create(orchestrator.register(authRequest))
+                .expectError(RuntimeException.class)
+                .verify();
+
+        verify(webClient, times(1)).post();
+        verifyNoInteractions(jwtService);
+    }
+}

@@ -1,0 +1,142 @@
+version: '5'
+
+services:
+
+  user-postgres:
+    image: 'postgres:15-alpine'
+    container_name: 'userService-postgres'
+    ports:
+      - "5432:5432"
+    environment:
+      - 'POSTGRES_USER=${DB_USERNAME}'
+      - 'POSTGRES_PASSWORD=${DB_PASSWORD}'
+      - 'POSTGRES_DB=userdb'
+    networks:
+      - app-network
+    volumes:
+      - user_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  user-service:
+    build: ../userServiceInno
+    container_name: 'userService-inno'
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-postgres:5432/userdb
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_LIQUIBASE_CHANGE_LOG: classpath:/db/changelog/db.changelog-master.xml
+    depends_on:
+      - user-postgres
+      - redis
+    networks:
+      - app-network
+
+
+  auth-postgres:
+    image: 'postgres:15-alpine'
+    container_name: 'authService-postgres'
+    ports:
+      - "5433:5432"
+    environment:
+      - 'POSTGRES_USER=${DB_USERNAME}'
+      - 'POSTGRES_PASSWORD=${DB_PASSWORD}'
+      - 'POSTGRES_DB=authdb'
+    networks:
+      - app-network
+    volumes:
+      - auth_postgres_data:/var/lib/postgresql/data
+
+  auth-service:
+    build: ../authServiceInno
+    container_name: 'authService-inno'
+    ports:
+      - "8082:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-postgres:5432/authdb
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_LIQUIBASE_CHANGE_LOG: classpath:/db/changelog/db.changelog-master.xml
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      REFRESH_EXPIRATION: ${REFRESH_EXPIRATION}
+    depends_on:
+      - auth-postgres
+    networks:
+      - app-network
+
+
+
+  order-postgres:
+    image: 'postgres:15-alpine'
+    container_name: 'orderService-postgres'
+    ports:
+      - "5434:5432"
+    environment:
+      - 'POSTGRES_USER=${DB_USERNAME}'
+      - 'POSTGRES_PASSWORD=${DB_PASSWORD}'
+      - 'POSTGRES_DB=orderdb'
+    networks:
+      - app-network
+    volumes:
+      - order_postgres_data:/var/lib/postgresql/data
+
+  order-service:
+    build: ../orderServiceInno
+    container_name: 'orderService-inno'
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://order-postgres:5432/orderdb
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      URL_USER_SERVICE: ${USER_SERVICE_URL}
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_LIQUIBASE_CHANGE_LOG: classpath:/db/changelog/db.changelog-master.xml
+    depends_on:
+      - order-postgres
+    networks:
+      - app-network
+
+
+  api-gateway:
+    build: .
+    container_name: 'api-gateway'
+    ports:
+      - "8888:8888"
+    environment:
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      ORDER_SERVICE_URL: ${ORDER_SERVICE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - auth-service
+      - user-service
+      - order-service
+    networks:
+      - app-network
+
+
+volumes:
+  auth_postgres_data:
+  user_postgres_data:
+  order_postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

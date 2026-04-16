@@ -2,6 +2,7 @@ package com.innowise.apiGateway.controller.advice;
 
 import com.innowise.apiGateway.exception.CardLimitException;
 import com.innowise.apiGateway.exception.DuplicateEmailException;
+import com.innowise.apiGateway.exception.RegistrationRollbackException;
 import com.innowise.apiGateway.exception.dto.ErrorResponse;
 import com.innowise.apiGateway.exception.UserAlreadyExistsException;
 import jakarta.persistence.EntityNotFoundException;
@@ -24,6 +25,18 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class ControllerAdvice {
+
+    @ExceptionHandler(RegistrationRollbackException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ResponseEntity<ErrorResponse> handleRegistrationRollbackException(RegistrationRollbackException e) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.SERVICE_UNAVAILABLE.value())
+                .error("Registration Rollback Failed")
+                .message(e.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorResponse);
+    }
 
     @ExceptionHandler(UserAlreadyExistsException.class)
     @ResponseStatus(HttpStatus.CONFLICT)

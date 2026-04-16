@@ -6,9 +6,12 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.PathContainer;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.util.pattern.PathPattern;
+import org.springframework.web.util.pattern.PathPatternParser;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -18,13 +21,17 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
     private static final String AUTH_HEADERS = "Authorization";
     public static final String BEARER = "Bearer ";
 
+    private static final PathPatternParser PATTERN_PARSER = new PathPatternParser();
+    private static final PathPattern LOGIN_PATTERN = PATTERN_PARSER.parse("/auth/login");
+    private static final PathPattern REGISTER_PATTERN = PATTERN_PARSER.parse("/auth/register");
+
     private final JwtService jwtService;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        String path = exchange.getRequest().getPath().toString();
+        PathContainer path = exchange.getRequest().getPath().pathWithinApplication();
 
-        if (path.contains("/tokens/login") || path.contains("/tokens/register")) {
+        if (LOGIN_PATTERN.matches(path) || REGISTER_PATTERN.matches(path)) {
             return chain.filter(exchange);
         }
 

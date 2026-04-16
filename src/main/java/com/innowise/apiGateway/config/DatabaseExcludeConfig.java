@@ -1,4 +1,4 @@
-package com.innowise.config;
+package com.innowise.apiGateway.config;
 
 
 import org.springframework.context.annotation.Configuration;

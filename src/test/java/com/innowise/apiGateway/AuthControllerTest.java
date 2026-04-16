@@ -1,7 +1,9 @@
 package com.innowise.apiGateway;
 
+import com.innowise.apiGateway.controller.AuthController;
 import com.innowise.apiGateway.dto.AuthRequest;
 import com.innowise.apiGateway.dto.JwtResponse;
+import com.innowise.apiGateway.service.RegistrationOrchestrator;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -35,7 +37,7 @@ class AuthControllerTest {
                 .thenReturn(Mono.just(expectedResponse));
 
         webTestClient.post()
-                .uri("/auth/register")
+                .uri("/tokens/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -55,7 +57,7 @@ class AuthControllerTest {
                 .thenReturn(Mono.error(new RuntimeException("Registration failed")));
 
         webTestClient.post()
-                .uri("/auth/register")
+                .uri("/tokens/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -65,7 +67,7 @@ class AuthControllerTest {
     @Test
     void register_MissingRequestBody_ReturnsBadRequest() {
         webTestClient.post()
-                .uri("/auth/register")
+                .uri("/tokens/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isBadRequest();
@@ -79,7 +81,7 @@ class AuthControllerTest {
                 .build();
 
         webTestClient.post()
-                .uri("/auth/register")
+                .uri("/tokens/register")
                 .contentType(MediaType.TEXT_PLAIN)
                 .bodyValue(request.toString())
                 .exchange()

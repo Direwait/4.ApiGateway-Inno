@@ -1,5 +1,6 @@
-package com.innowise.apiGateway;
+package com.innowise.apiGateway.controller;
 
+import com.innowise.apiGateway.service.RegistrationOrchestrator;
 import com.innowise.apiGateway.dto.AuthRequest;
 import com.innowise.apiGateway.dto.JwtResponse;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/tokens")
 @RequiredArgsConstructor
 public class AuthController {
 

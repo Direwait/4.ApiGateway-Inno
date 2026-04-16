@@ -1,5 +1,6 @@
-package com.innowise.apiGateway;
+package com.innowise.apiGateway.filter;
 
+import com.innowise.apiGateway.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -14,13 +15,16 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class JwtGatewayFilter implements GlobalFilter, Ordered {
 
+    private static final String AUTH_HEADERS = "Authorization";
+    public static final String BEARER = "Bearer ";
+
     private final JwtService jwtService;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getPath().toString();
 
-        if (path.contains("/auth/login") || path.contains("/auth/register")) {
+        if (path.contains("/tokens/login") || path.contains("/tokens/register")) {
             return chain.filter(exchange);
         }
 
@@ -44,8 +48,8 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
     }
 
     private String extractToken(ServerHttpRequest request) {
-        String authHeader = request.getHeaders().getFirst("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        String authHeader = request.getHeaders().getFirst(AUTH_HEADERS);
+        if (authHeader != null && authHeader.startsWith(BEARER)) {
             return authHeader.substring(7);
         }
         return null;

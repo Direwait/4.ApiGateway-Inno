@@ -1,4 +1,4 @@
-package com.innowise.apiGateway;
+package com.innowise.apiGateway.service;
 
 import com.innowise.apiGateway.dto.AuthRequest;
 import com.innowise.apiGateway.dto.JwtResponse;
@@ -9,8 +9,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-
-import java.time.LocalDate;
 import java.util.UUID;
 
 
@@ -40,7 +38,7 @@ public class RegistrationOrchestrator {
                             .thenReturn(authResponse)
                             .onErrorResume(ex -> {
                                 return rollbackCredentials(userId)
-                                        .then(Mono.error(new RuntimeException("User credentials creation failed")));
+                                        .then(Mono.error(new RuntimeException("User profile creation failed")));
                             });
                 });
     }
@@ -48,10 +46,7 @@ public class RegistrationOrchestrator {
     private Mono<UserDto> createUser(AuthRequest request, UUID userId) {
         var build = UserDto.builder()
                 .id(userId)
-                .name(request.getUsername())
-                .surname("Please, change your data")
-                .email("placeholder@mail.com")
-                .birthDate(LocalDate.of(1800, 1, 1))
+                .email(request.getEmail())
                 .build();
 
         return webClient.post()
@@ -65,10 +60,11 @@ public class RegistrationOrchestrator {
         AuthRequest registerRequest = AuthRequest.builder()
                 .username(request.getUsername())
                 .password(request.getPassword())
+                .email(request.getEmail())
                 .build();
 
         return webClient.post()
-                .uri(authServiceUrl + "/auth/register")
+                .uri(authServiceUrl + "/tokens/register")
                 .bodyValue(registerRequest)
                 .retrieve()
                 .bodyToMono(JwtResponse.class);
@@ -76,7 +72,7 @@ public class RegistrationOrchestrator {
 
     private Mono<Void> rollbackCredentials(UUID userId) {
         return webClient.delete()
-            .uri(authServiceUrl + "/auth/" + userId)
+            .uri(authServiceUrl + "/tokens/" + userId)
             .retrieve()
             .bodyToMono(Void.class)
             .onErrorResume(ex -> {

@@ -3,6 +3,8 @@ package com.innowise.apiGateway;
 import com.innowise.apiGateway.dto.AuthRequest;
 import com.innowise.apiGateway.dto.JwtResponse;
 import com.innowise.apiGateway.dto.UserDto;
+import com.innowise.apiGateway.service.JwtService;
+import com.innowise.apiGateway.service.RegistrationOrchestrator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -74,15 +76,13 @@ class RegistrationOrchestratorTest {
 
     @Test
     void register_Success() {
-        // Мокаем вызов для auth-service
         when(webClient.post()).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.uri(contains("/auth/register"))).thenReturn(requestBodySpec);
+        when(requestBodyUriSpec.uri(contains("/tokens/register"))).thenReturn(requestBodySpec);
         when(requestBodySpec.contentType(any(MediaType.class))).thenReturn(requestBodySpec);
         when(requestBodySpec.bodyValue(any(AuthRequest.class))).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.bodyToMono(JwtResponse.class)).thenReturn(Mono.just(jwtResponse));
 
-        // Мокаем вызов для user-service
         when(webClient.post()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri(contains("/users"))).thenReturn(requestBodySpec);
         when(requestBodySpec.contentType(any(MediaType.class))).thenReturn(requestBodySpec);
@@ -102,15 +102,13 @@ class RegistrationOrchestratorTest {
 
     @Test
     void register_UserServiceFails_Rollback() {
-        // Auth service success
         when(webClient.post()).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.uri(contains("/auth/register"))).thenReturn(requestBodySpec);
+        when(requestBodyUriSpec.uri(contains("/tokens/register"))).thenReturn(requestBodySpec);
         when(requestBodySpec.contentType(any(MediaType.class))).thenReturn(requestBodySpec);
         when(requestBodySpec.bodyValue(any(AuthRequest.class))).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.bodyToMono(JwtResponse.class)).thenReturn(Mono.just(jwtResponse));
 
-        // User service fails
         when(webClient.post()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri(contains("/users"))).thenReturn(requestBodySpec);
         when(requestBodySpec.contentType(any(MediaType.class))).thenReturn(requestBodySpec);
@@ -121,9 +119,9 @@ class RegistrationOrchestratorTest {
 
         when(jwtService.extractUserId(anyString())).thenReturn(userId);
 
-        // Rollback
+
         when(webClient.delete()).thenReturn(requestHeadersUriSpec);
-        when(requestHeadersUriSpec.uri(contains("/auth/rollback-registration"), eq(userId)))
+        when(requestHeadersUriSpec.uri(contains("/tokens/rollback-registration"), eq(userId)))
                 .thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.bodyToMono(Void.class)).thenReturn(Mono.empty());
@@ -138,7 +136,7 @@ class RegistrationOrchestratorTest {
     @Test
     void register_AuthServiceFails() {
         when(webClient.post()).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.uri(contains("/auth/register"))).thenReturn(requestBodySpec);
+        when(requestBodyUriSpec.uri(contains("/tokens/register"))).thenReturn(requestBodySpec);
         when(requestBodySpec.contentType(any(MediaType.class))).thenReturn(requestBodySpec);
         when(requestBodySpec.bodyValue(any(AuthRequest.class))).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);

@@ -4,6 +4,10 @@ server:
 spring:
   config:
     import: optional:file:.env[.properties]
+
+  security:
+    enabled: false
+
   cloud:
     gateway:
       server:

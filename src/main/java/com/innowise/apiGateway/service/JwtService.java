@@ -1,4 +1,4 @@
-package com.innowise.apiGateway;
+package com.innowise.apiGateway.service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;

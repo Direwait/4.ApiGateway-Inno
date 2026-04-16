@@ -1,5 +1,6 @@
 package com.innowise.apiGateway;
 
+import com.innowise.apiGateway.config.TestSecurityConfig;
 import com.innowise.apiGateway.controller.AuthController;
 import com.innowise.apiGateway.dto.AuthRequest;
 import com.innowise.apiGateway.dto.JwtResponse;
@@ -7,6 +8,7 @@ import com.innowise.apiGateway.service.RegistrationOrchestrator;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -15,6 +17,7 @@ import reactor.core.publisher.Mono;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+@Import(TestSecurityConfig.class)
 @WebFluxTest(AuthController.class)
 class AuthControllerTest {
 

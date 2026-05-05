@@ -1,0 +1,44 @@
+server:
+  port: 8888
+
+spring:
+  config:
+    import: optional:file:.env[.properties]
+
+  security:
+    enabled: false
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: user-service-route
+              uri: ${USER_SERVICE_URL:http://localhost:8080}
+              predicates:
+                - Path=/users/**, /cards/**
+              metadata:
+                response-timeout: 30000
+
+            - id: auth-service-route
+              uri: ${AUTH_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/auth/**
+
+            - id: order-service-route
+              uri: ${ORDER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/orders/**, /items/**
+
+            - id: payment-service-route
+              uri: ${PAYMENT_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/payments/**
+jwt:
+  secret: ${JWT_SECRET}
+
+url:
+  user-service: ${USER_SERVICE_URL:http://localhost:8080}
+  auth-service: ${AUTH_SERVICE_URL:http://localhost:8082}
+  order-service: ${ORDER_SERVICE_URL:http://localhost:8081}
+  payment-service: ${PAYMENT_SERVICE_URL:http://localhost:8083}

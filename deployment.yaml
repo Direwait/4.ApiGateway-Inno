@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway-inno
+  labels:
+    app: api-gateway-inno
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway-inno
+  template:
+    metadata:
+      labels:
+        app: api-gateway-inno
+    spec:
+      containers:
+        - name: api-gateway-inno
+          image: direwait/apigateway-inno:latest
+          ports:
+            - containerPort: 8888
+          env:
+            - name: JWT_SECRET
+              value: "2d0f8dd43218c7413bd3e72f7be624838c8120b50406973cd05b06d08e93961f"
+
+            - name: USER_SERVICE_URL
+              value: "http://user-service-inno:8080"
+
+            - name: AUTH_SERVICE_URL
+              value: "http://auth-service-inno:8080"
+
+            - name: ORDER_SERVICE_URL
+              value: "http://order-service-inno:8080"
+
+            - name: PAYMENT_SERVICE_URL
+              value: "http://payment-service-inno:8080"
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8888
+            initialDelaySeconds: 50
+            periodSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8888
+            initialDelaySeconds: 60
+            periodSeconds: 5
+            failureThreshold: 3

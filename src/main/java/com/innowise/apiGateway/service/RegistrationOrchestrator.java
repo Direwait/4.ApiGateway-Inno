@@ -7,6 +7,7 @@ import com.innowise.apiGateway.exception.RegistrationRollbackException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -32,10 +33,11 @@ public class RegistrationOrchestrator {
                 .flatMap(authResponse -> {
                     String token = authResponse.accessToken();
                     UUID userId = jwtService.extractUserId(token);
+                    String role = jwtService.extractRole(token);
 
-                    log.info("User registered in AuthService with id: {}", userId);
+                    log.info("User registered in AuthService with id: {}, {}", userId, role);
 
-                    return createUser(request, userId)
+                    return createUser(request, userId, role, token)
                             .thenReturn(authResponse)
                             .onErrorResume(ex -> {
                                 return rollbackCredentials(userId)
@@ -44,17 +46,20 @@ public class RegistrationOrchestrator {
                 });
     }
 
-    private Mono<UserDto> createUser(RegisterRequest request, UUID userId) {
+    private Mono<UserDto> createUser(RegisterRequest request, UUID userId, String role, String token) {
         var build = UserDto.builder()
                 .id(userId)
                 .email(request.getEmail())
                 .build();
 
         return webClient.post()
-            .uri(userServiceUrl + "/users")
-            .bodyValue(build)
-            .retrieve()
-            .bodyToMono(UserDto.class);
+                .uri(userServiceUrl + "/users")
+                .header("X-User-Id", userId.toString())
+                .header("X-User-Role", role)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .bodyValue(build)
+                .retrieve()
+                .bodyToMono(UserDto.class);
     }
 
     private Mono<JwtResponse> registerCredentials(RegisterRequest request) {

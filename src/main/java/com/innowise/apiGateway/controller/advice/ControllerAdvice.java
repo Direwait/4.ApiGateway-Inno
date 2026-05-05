@@ -1,10 +1,7 @@
 package com.innowise.apiGateway.controller.advice;
 
-import com.innowise.apiGateway.exception.CardLimitException;
-import com.innowise.apiGateway.exception.DuplicateEmailException;
-import com.innowise.apiGateway.exception.RegistrationRollbackException;
+import com.innowise.apiGateway.exception.*;
 import com.innowise.apiGateway.exception.dto.ErrorResponse;
-import com.innowise.apiGateway.exception.UserAlreadyExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;

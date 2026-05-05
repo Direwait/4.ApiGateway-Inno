@@ -80,7 +80,6 @@ services:
       - app-network
 
 
-
   order-postgres:
     image: 'postgres:15-alpine'
     container_name: 'orderService-postgres'
@@ -99,7 +98,7 @@ services:
     build: ../orderServiceInno
     container_name: 'orderService-inno'
     ports:
-      - "8081:8081"
+      - "8081:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://order-postgres:5432/orderdb

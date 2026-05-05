@@ -2,6 +2,7 @@ package com.innowise.apiGateway.filter;
 
 import com.innowise.apiGateway.service.JwtService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -14,6 +15,7 @@ import org.springframework.web.util.pattern.PathPattern;
 import org.springframework.web.util.pattern.PathPatternParser;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtGatewayFilter implements GlobalFilter, Ordered {
@@ -24,6 +26,7 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
     private static final PathPatternParser PATTERN_PARSER = new PathPatternParser();
     private static final PathPattern LOGIN_PATTERN = PATTERN_PARSER.parse("/auth/login");
     private static final PathPattern REGISTER_PATTERN = PATTERN_PARSER.parse("/auth/register");
+    private static final PathPattern REFRESH_PATTERN = PATTERN_PARSER.parse("/auth/refresh");
 
     private final JwtService jwtService;
 
@@ -31,12 +34,13 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         PathContainer path = exchange.getRequest().getPath().pathWithinApplication();
 
-        if (LOGIN_PATTERN.matches(path) || REGISTER_PATTERN.matches(path)) {
+        if (LOGIN_PATTERN.matches(path) || REGISTER_PATTERN.matches(path) || REFRESH_PATTERN.matches(path)) {
             return chain.filter(exchange);
         }
 
         String token = extractToken(exchange.getRequest());
         if (token == null || !jwtService.isTokenValid(token)) {
+
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }

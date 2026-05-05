@@ -21,6 +21,7 @@ public class SecurityConfig {
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .logout(ServerHttpSecurity.LogoutSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers("/auth/**").permitAll()
                         .anyExchange().permitAll()
                 )
                 .exceptionHandling(exceptionHandling -> exceptionHandling
